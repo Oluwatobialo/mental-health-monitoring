@@ -1,0 +1,9 @@
+# Railway/Nixpacks: use Python and install deps from requirements.txt
+[phases.setup]
+nixPkgs = ["python313", "python313Packages.pip"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[variables]
+PYTHONUNBUFFERED = "1"

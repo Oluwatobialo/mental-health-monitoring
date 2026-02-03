@@ -1,6 +1,8 @@
 """
 Mental health text classification: MentalBERT (fine-tuned) only.
-Loads from finetuned_model/ (created by python finetune.py). Fails at startup if not present.
+- Local: loads from finetuned_model/ (created by python finetune.py).
+- Production: set HF_FINETUNED_MODEL_ID to your Hugging Face repo (e.g. username/mentalbert-finetuned)
+  and HF_TOKEN; model will be loaded from HF at startup.
 """
 import os
 import torch
@@ -12,6 +14,8 @@ MAX_INPUT_CHARS = 800
 FINETUNED_DIR = os.environ.get("FINETUNED_MODEL_DIR") or os.path.join(
     os.path.dirname(__file__), "finetuned_model"
 )
+# Production: load from Hugging Face if set (e.g. username/mentalbert-finetuned)
+HF_FINETUNED_MODEL_ID = os.environ.get("HF_FINETUNED_MODEL_ID", "").strip() or None
 
 _tokenizer = None
 _model = None
@@ -47,21 +51,26 @@ def _preprocessing_steps():
 
 
 def load_model():
-    """Load MentalBERT (fine-tuned) from finetuned_model/. Fails if the folder does not exist."""
+    """Load MentalBERT (fine-tuned) from local finetuned_model/ or from Hugging Face (HF_FINETUNED_MODEL_ID)."""
     global _tokenizer, _model, _loaded_model_id  # noqa: PLW0603
     if _model is not None:
         return _tokenizer, _model
     device = get_device()
+    hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
 
-    if not os.path.isdir(FINETUNED_DIR):
+    if os.path.isdir(FINETUNED_DIR):
+        _tokenizer = AutoTokenizer.from_pretrained(FINETUNED_DIR)
+        _model = AutoModelForSequenceClassification.from_pretrained(FINETUNED_DIR)
+        _loaded_model_id = MENTALBERT_FINETUNED_DISPLAY
+    elif HF_FINETUNED_MODEL_ID and hf_token:
+        _tokenizer = AutoTokenizer.from_pretrained(HF_FINETUNED_MODEL_ID, token=hf_token)
+        _model = AutoModelForSequenceClassification.from_pretrained(HF_FINETUNED_MODEL_ID, token=hf_token)
+        _loaded_model_id = MENTALBERT_FINETUNED_DISPLAY
+    else:
         raise RuntimeError(
-            "MentalBERT fine-tuned model not found. Run in the backend folder: "
-            "python finetune.py --epochs 3 --batch_size 16 --lr 5e-5 "
-            "(requires HF token and MentalBERT access)."
+            "MentalBERT fine-tuned model not found. Either: (1) Run python finetune.py in the backend folder, "
+            "or (2) Set HF_FINETUNED_MODEL_ID and HF_TOKEN to load from Hugging Face (e.g. after uploading with upload_finetuned_to_hf.py)."
         )
-    _tokenizer = AutoTokenizer.from_pretrained(FINETUNED_DIR)
-    _model = AutoModelForSequenceClassification.from_pretrained(FINETUNED_DIR)
-    _loaded_model_id = MENTALBERT_FINETUNED_DISPLAY
 
     _model.to(device)
     _model.eval()
