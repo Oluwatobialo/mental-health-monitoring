@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+backend/venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Fine-tuned model (large; run finetune.py on each machine or after clone)
+backend/finetuned_model/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Frontend build
+build/
+
+# IDE / OS
+.idea/
+.vscode/
+.cursor/
+.DS_Store
+Thumbs.db
+*.log
+
+# Hugging Face cache (optional; uncomment if you want to ignore HF cache)
+# .cache/
